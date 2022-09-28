@@ -1,5 +1,5 @@
 function DOIForNuc(utap, rWell, simType, logName)
-% Copyright 2022 Bruce Klappauf
+% Copyright 2022 Bruce Klappauf (UT Austin)
 % 
 % Permission is hereby granted, free of charge, to any person obtaining a copy 
 % of this software and associated documentation files (the "Software"), to deal 
