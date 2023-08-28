@@ -1,0 +1,121 @@
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Windows Installer files
+*.cab
+*.msi
+*.msm
+*.msp
+
+# =========================
+# Operating System Files
+# =========================
+
+# OSX
+# =========================
+
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Files that might appear on external 
+
+disk
+.Spotlight-V100
+.Trashes
+
+# =========================
+# UTAPWeLS folders and files
+# =========================
+
+p/
+lic/
+temp/
+appinfo/
+log/
+*.log
+*.pyc
+
+# ignore any folders named Deprecated
+*/Deprecated/*
+*/Deprecated
+Deprecated
+
+# ignore any folders named TestProjects (may be too large for repository)
+*/TestProjects/*
+*/TestProjects
+TestProjects
+
+# ignore any folders named TestProjects (may be too large for repository)
+*/CompatibilityTestProjects/*
+*/CompatibilityTestProjects
+CompatibilityTestProjects
+
+# ignore any folders named TestRecords (do not save test results in repository)
+*/TestRecords/*
+*/TestRecords
+TestRecords
+
+# ignore any folders named _CompatibilityTestProjects (do not save test results in repository)
+*/_CompatibilityTestProjects/*
+*/_CompatibilityTestProjects
+_CompatibilityTestProjects
+
+# ignore any folders named _TestResults (do not save test results in repository)
+*/_TestResults/*
+*/_TestResults
+_TestResults
+
+
+# ignore proprietary files (but keep DIRECTORY_REPORT files for record)
+sim/b/*
+!sim/b/DIRECTORY_REPORT*
+sim/d/*
+!sim/d/DIRECTORY_REPORT*
+sim/h/*
+!sim/h/DIRECTORY_REPORT*
+sim/s/*
+!sim/s/DIRECTORY_REPORT*
+sim/w/*
+!sim/w/DIRECTORY_REPORT*
+lib/*
+!lib/DIRECTORY_REPORT*
+!lib/UT_Longhorn
+lib/UT_Longhorn/*
+!lib/UT_Longhorn/DIRECTORY_REPORT*
+!lib/UTNuPro
+!lib/Weatherford
+lib/Weatherford/*
+!lib/Weatherford/DIRECTORY_REPORT*
+!lib/Baker
+lib/Baker/*
+!lib/Baker/DIRECTORY_REPORT*
+!lib/UT_NMR
+lib/UT_NMR/*
+
+# zip encoded files
+*.zip.encoded
+
+# Temporary Matlab Files
+*.asv
+
+# Python cache files
+py/Python38/**/__pycache__
+
+# Misc
+UTAPWeLS_MB.bat
+startUTAPWeLS.bat
+startUTAPWeLS_sh.bat
+longhorn_QPK_icon.ico
+Sample\ LAS\ Files/Fluid-Flow.las
+UTAPUnitTests/latestCompatibilityResults.txt
