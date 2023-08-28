@@ -1,4 +1,21 @@
 function ThicknessSensitivityForRes(utap, rWell, resRef)
+% Copyright 2022 Bruce Klappauf (UT Austin)
+% 
+% Permission is hereby granted, free of charge, to any person obtaining a copy 
+% of this software and associated documentation files (the "Software"), to deal 
+% in the Software without restriction, including without limitation the rights 
+% to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
+% of the Software, and to permit persons to whom the Software is furnished to do 
+% so, subject to the following conditions:
+% The above copyright notice and this permission notice shall be included in all 
+% copies or substantial portions of the Software.
+% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
+% INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A 
+% PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT 
+% HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
+% OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
+% SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 % Compare change in simulation value vs change in layer value for different
 % layer thicknesses.
 % utap: mandatory input of UTAPWeLS session object
@@ -25,7 +42,7 @@ function ThicknessSensitivityForRes(utap, rWell, resRef)
 % Now we first set hard coded values that we may want to change or to have
 % as inputs later.  We put them here so they are easy to find.
 
-nVar = 10; % Number of var layers. 
+nVar = 10; % Number of var layers. Different resistivity for each layer
 nRng = 1000; % ie highest resistivity will be nRng*resRef
 nThick = 6; % number of thickness variations to look at
 dThick = 2; % Thicknesses will vary from dThick to nThick*dThick (m)
@@ -63,6 +80,7 @@ end
 if nargin<2 || isempty(rWell) 
     wellName = sprintf('SensWellRes %.2f', resRef);
     rW = rCSF.Wells.addElement(wellName);
+    wellName = rW.Name; % In case there was a duplicate name.
 else
     rW = rWell;  % Just to make variable easier to type
     wellName = rW.Name;
@@ -75,8 +93,8 @@ end
 % test thickness. 
 
 rW.ModelingLimits = [startMD, startMD + (nVar+1)*secThick];
-rW.EM.deleteBB('mdSegment', [-inf, inf]) % clear all current layers
-dU = rW.rDisplayUnitSys.Distance; % get display distance unit for use below
+rW.EM.Geometry.deleteBB('mdSegment', [-inf, inf]) % clear all current layers
+dU = rW.rDispUS.Distance; % get display distance unit for use below
 % ref layer tops
 bbRef = startMD:secThick:(startMD + secThick*(nVar+1));
 % make initial variable layers that will be moved each thickness loop
@@ -84,20 +102,20 @@ bbVar = bbRef(2:(nVar+1)) - thickMin;
 allBB = sort([bbRef, bbVar]);
 nBB = numel(allBB);
 % Now add all initial layers.
-rW.rEM.addBB('md', allBB);
+rW.EM.Geometry.addBB('md', allBB);
 % Note layer indices are indices for layer below BB index.
 % Layer indices and value arrays should be vertical.
 allLyrIdx = (2:nBB)'; % layers BETWEEN first and last BB
 varLyrIdx = (3:2:nBB)';
 % set porosity for all layers. Just need a single value if all the same.
-rW.rEM.setProperty('propName', 'Porosity, Total', 'value', phi, ...
+rW.EM.Properties.setProperty('propName', 'Porosity, Total', 'value', phi, ...
                    'layerIdx', allLyrIdx);
 % set initial water resistivity               
-rW.rEM.setProperty('propName', 'Water Resistivity', 'value', resRef, ...
+rW.EM.Properties.setProperty('propName', 'Water Resistivity', 'value', resRef, ...
                    'layerIdx', allLyrIdx);  
 % set the variable resistivities in the even layers               
 resVar = logspace(log10(resRef), log10(nRng*resRef), nVar);
-rW.rEM.setProperty('propName', 'Water Resistivity', 'value', resVar', ...
+rW.EM.Properties.setProperty('propName', 'Water Resistivity', 'value', resVar', ...
                    'layerIdx', varLyrIdx);
          
 % =========================================================================
@@ -116,8 +134,8 @@ rSim.Variant = variantName;
 % Want to plot log vs res for different thickenesses, 
 % so get Earth Model Resistivities. 
 % These will not change in thickness loop.
-rW.EM_Calculators.Resistivities.calculate;  
-resVarii = rW.rEM.getProperty(...
+rW.EMCalculators.Archies.run;  
+resVarii = rW.EM.Properties.getProperty(...
                 'propName', 'Resistivity (Parallel or Homogeneous)', ...
              	'layerIdx', varLyrIdx);
 % Data array containing Earth Model resistivity different in var layers
@@ -138,7 +156,7 @@ for d = 1:nThick
     
     % Move the boundaries of the var layers to change thickness
     for ii = 1:numel(newMD)
-        rW.rEM.moveBB('idx', ii*2, 'md', newMD(ii))
+        rW.EM.Geometry.moveBB('idx', ii*2, 'md', newMD(ii))
     end    
      
     % Run the sim
@@ -188,11 +206,11 @@ function a = getSimData(rRes, rW, logname, nRes, lidxVar, dU)
     % center of the ref and val layers
     LS = rW.getLogSet(rRes.OutputLogSet);
     log = LS.getLog(logname);
-    logDepths = Units.convert(LS.depthData, LS.depthDataUnits, dU);
-    testDpth = rW.rEM.getMidLayerDepths(lidxVar(1:nRes));
-    refDpth = rW.rEM.getMidLayerDepths(lidxVar(1:nRes)-1);
-    testVals = interp1(logDepths, log.rawData, testDpth);
-    refVals = interp1(logDepths, log.rawData, refDpth);
+    logDepths = ut.units.convert(LS.DepthData, LS.DepthDataUnits, dU);
+    testDpth = rW.EM.Geometry.getMidLayerDepths(lidxVar(1:nRes));
+    refDpth = rW.EM.Geometry.getMidLayerDepths(lidxVar(1:nRes)-1);
+    testVals = interp1(logDepths, log.RawData, testDpth);
+    refVals = interp1(logDepths, log.RawData, refDpth);
     a = [refVals(:), testVals(:)];   
 end
 
