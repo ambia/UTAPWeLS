@@ -1,4 +1,21 @@
 function DOIForNuc(utap, rWell, simType, logName)
+% Copyright 2022 Bruce Klappauf (UT Austin)
+% 
+% Permission is hereby granted, free of charge, to any person obtaining a copy 
+% of this software and associated documentation files (the "Software"), to deal 
+% in the Software without restriction, including without limitation the rights 
+% to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
+% of the Software, and to permit persons to whom the Software is furnished to do 
+% so, subject to the following conditions:
+% The above copyright notice and this permission notice shall be included in all 
+% copies or substantial portions of the Software.
+% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
+% INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A 
+% PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT 
+% HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
+% OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
+% SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 % Compare DOI of Nuclear simulation vs invasion.
 % Method:
 %   Set up a well with multiple layers, each with a different invasion
@@ -26,8 +43,8 @@ maxRadThick = .5; % (m)
 startMD = 1000;
 % use default porosity
 phiRef = .2;
-SwF = .01;
-SwI = 1;
+SwF = .01;  % Formation water
+SwI = 1;    % Invaded water
 Cw = 1000; %ppm
 
 radThick = linspace(0, maxRadThick, nRadThick);
@@ -44,16 +61,19 @@ if nargin<4 || isempty(logName)
     logName = 'NPHI';
 end
    
+if nargin<3 || isempty(logName)    
+    simType = 'WL';
+end
 
 if startsWith(upper(simType), 'WL')
-    simTool = 'UT_Longhorn_WL';
+    simTool = 'Longhorn Wireline';
     if logName(1)=='N'
         logSet = 'Neutron (Longhorn Wireline) Simulated Logs';
     else        
         logSet = 'Density (Longhorn Wireline) Simulated Logs';
     end
 else
-    simTool = 'UT_Longhorn_LWD';
+    simTool = 'Longhorn LWD';
     if logName(1)=='N'
         logSet = 'Neutron (Longhorn LWD) Simulated Logs';
     else        
@@ -65,50 +85,52 @@ end
 % =========================================================================
 
 % assume we have a UTAPWeLS session started called 'utap'
-rCSF = utap.rCSF;
+rCSF = utap.CSF;
 % make new well if needed
 if nargin<2 || isempty(rWell)   
-    rW = rCSF.addNewWell('SensWell1');
+    wellName = sprintf('DOI for Nuc %s:%s', simType, simTool);
+    rW = rCSF.Wells.addElement(wellName);
 else
     rW = rWell;  % Just to make variable easier to type
 end
 
-bhRad = rW.rEM.radB(1,1);
+bhRad = rW.EM.Geometry.RadB(1,1);
 
 % =========================================================================
 % Create the basic earth model
 % =========================================================================
 % We want nRadThick layers 
 rW.ModelingLimits = [startMD, startMD + (nRadThick)*zThick];
-rW.rEM.deleteBB('mdSegment', [-inf, inf]) % clear all current layers
-dU = rW.rDisplayUnitSys.Distance; % get display distance unit for use below
+rW.EM.Geometry.deleteBB('mdSegment', [-inf, inf]) % clear all current layers
+dU = rW.rDispUS.Distance; % get display distance unit for use below
 % ref layer tops
 bbTop = startMD:zThick:(startMD + (nRadThick)*zThick);
 nBB = numel(bbTop);
 % Now add all initial layers.
-rW.rEM.addBB('md', bbTop);
+rW.EM.Geometry.addBB('md', bbTop);
 % Note layer indices are indices for layer below BB index.
 % Layer indices and value arrays should be vertical.
 allLyrIdx = (2:nBB)';
+nRadZones = rW.EM.Geometry.NumRadB;
 
 % set porosity for all layers. Just need a single value if all the same.
-rW.rEM.Compositions.setComposition('Fluid', {'CH4', 1}, ...
-                                   'zoneIdx', 2:rW.rEM.numRadB)
-rW.rEM.setProperty('propName', 'Porosity, Total', 'value', phiRef, ...
+rW.EM.Properties.Compositions.setComposition('Fluid', {'Methane', 1}, ...
+                                   'zoneIdx', 2:nRadZones)
+rW.EM.Properties.setProperty('propName', 'Porosity, Total', 'value', phiRef, ...
                    'layerIdx', allLyrIdx);
-rW.rEM.setProperty('propName', 'Water Saturation, Total', 'value', SwF, ...
+rW.EM.Properties.setProperty('propName', 'Water Saturation, Total', 'value', SwF, ...
                    'layerIdx', allLyrIdx);               
-rW.rEM.setProperty('propName', 'Salinity', 'value', Cw, ...
+rW.EM.Properties.setProperty('propName', 'Salinity', 'value', Cw, ...
                    'layerIdx', allLyrIdx, 'zoneIdx', 'all');
          
 % set different invasion radius for each layer
 for lyrIdx = 3:(numel(radThick)+1)
     disp(lyrIdx);             % Show which iteration we are on
-    rW.rEM.addRad('rad', bhRad+radThick(lyrIdx-1), ...
-                'radUnits', 'm', 'layerIdx', lyrIdx)     
+    rW.EM.Geometry.addRad('rad', bhRad+radThick(lyrIdx-1), ...
+                'radUnits', 'm', 'layerIdx', lyrIdx);     
 end
 
-rW.rEM.setProperty('propName', 'Water Saturation, Total', 'value', SwI, ...
+rW.EM.Properties.setProperty('propName', 'Water Saturation, Total', 'value', SwI, ...
                    'layerIdx', allLyrIdx(2:end),...
                    'zoneIdx', 2);
 % =========================================================================
@@ -117,7 +139,7 @@ rW.rEM.setProperty('propName', 'Water Saturation, Total', 'value', SwI, ...
                
 % Get simulator and set up
 rSim = rW.Simulators.Nuclear;
-rSim.SimTool = simTool;
+rSim.Tool = simTool;
 rSim.DoNeutron = true;
 rSim.DoDensity = true;
 rSim.RunNucCalcFirst = true;
@@ -127,7 +149,7 @@ rSim.RunNucCalcFirst = true;
 % =========================================================================
 % Run Sim and plot data 
 % =========================================================================
-rSim.runSim
+rSim.run
 a = getSimData(rW, logName, allLyrIdx, dU);
 fmtnVal = a(1);
 waterVal = a(end);
@@ -166,9 +188,9 @@ function a = getSimData(rW, logName, allLyrIdx, dU)
     % center of the ref and val layers
     LS = rW.getLogSet(logSet);
     log = LS.getLog(logName);
-    logDepths = Units.convert(LS.depthData, LS.depthDataUnits, dU);
-    testDpth = rW.rEM.getMidLayerDepths(allLyrIdx);
-    testVals = interp1(logDepths, log.rawData, testDpth);
+    logDepths = ut.units.convert(LS.DepthData, LS.DepthDataUnits, dU);
+    testDpth = rW.EM.Geometry.getMidLayerDepths(allLyrIdx);
+    testVals = interp1(logDepths, log.RawData, testDpth);
     a = testVals(:);   
 end
 

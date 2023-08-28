@@ -52,7 +52,7 @@ logName = 'A40H';
 % =========================================================================
 
 % assume we have a UTAPWeLS session started called 'utap'
-rCSF = utap.rCSF;
+rCSF = utap.CSF;
 
 % use default resRef if needed
 if nargin<3 || isempty(resRef)   
@@ -62,10 +62,10 @@ end
 % make new well if needed
 if nargin<2 || isempty(rWell) 
     wellName = sprintf('SensWellRes %.2f', resRef);
-    rW = rCSF.addNewWell(wellName);
+    rW = rCSF.Wells.addElement(wellName);
 else
     rW = rWell;  % Just to make variable easier to type
-    wellName = rW.name;
+    wellName = rW.Name;
 end
 % =========================================================================
 % Create the basic earth model
@@ -75,7 +75,7 @@ end
 % test thickness. 
 
 rW.ModelingLimits = [startMD, startMD + (nVar+1)*secThick];
-rW.rEM.deleteBB('mdSegment', [-inf, inf]) % clear all current layers
+rW.EM.deleteBB('mdSegment', [-inf, inf]) % clear all current layers
 dU = rW.rDisplayUnitSys.Distance; % get display distance unit for use below
 % ref layer tops
 bbRef = startMD:secThick:(startMD + secThick*(nVar+1));
